@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import stats as stats
 import matplotlib.pyplot as plt
+import math
 
 l0 = 656.3
 
@@ -34,17 +35,17 @@ def pdf(longueur, centre, deviation):
 
 ysig = 30*pdf(l,obs,dev)
 
-plt.plot(l,ysig)
-plt.show()
+#plt.plot(l,ysig)
+#plt.show()
 
 bruit = np.random.normal(0,1,1000)
-plt.plot(l,bruit)
-plt.show()
+#plt.plot(l,bruit)
+#plt.show()
 
 data = ysig + bruit
 
-plt.plot(l,data)
-plt.show()
+#plt.plot(l,data)
+#plt.show()
 
 
 """ MODELS: Du signal et du bruit """
@@ -52,8 +53,8 @@ plt.show()
 lmod,step = lon(0,60*step,60)
 ymodel = pdf(lmod,(step*60/2),8)
 
-plt.plot(lmod,ymodel)
-plt.show()
+#plt.plot(lmod,ymodel)
+#plt.show()
 
 bruitmod = np.random.normal(0,1,1000)
 
@@ -72,27 +73,31 @@ def cross(ymodel,ysig):
 
 
 prodat = cross(ymodel,data)
-plt.plot(prodat)
-plt.show()
+#plt.plot(prodat)
+#plt.show()
 
 prodbruit = cross(ymodel,bruitmod)
-plt.plot(prodbruit)
-plt.show()
+#plt.plot(prodbruit)
+#plt.show()
 
 devbr = np.std(prodbruit)
 SNR = prodat/devbr
 
-plt.plot(SNR)
-plt.show()
+#plt.plot(SNR)
+#plt.show()
 
-print(np.size(SNR), np.size(data))
+index = np.argmax(SNR[SNR>3]) 
+index+= 30
+print(index)
 
+l_found = l[index]
+print("la longeur d'onde correspondante:" ,l_found)
 
+def redshift(l_found, l0):
+    redshift = abs((l_found - l0) /l0)
+    return redshift
 
-
-
-
-
+print(redshift(l_found, l0))
 
 
 
