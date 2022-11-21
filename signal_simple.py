@@ -3,15 +3,16 @@ from scipy import stats as stats
 import matplotlib.pyplot as plt
 import math
 
+
 l0 = 656.3
 
-x = np.random.uniform(0.0,1.0)
+z = np.random.uniform(0.0,1.0)
 
-def lobs(x,l0):
-    lob = x*l0 + l0
+def lobs(z,l0):
+    lob = z*l0 + l0
     return lob
 
-print("Pour z = ", x, "la longueur d'onde observee sera", lobs(x,l0),"nm")
+print("Pour z = ", z, "la longueur d'onde observee sera", lobs(z,l0),"nm")
 
 def lon(ini,fin,num):
     lond = np.linspace(ini, fin, num, retstep = True)
@@ -23,8 +24,8 @@ l,step = lon(600,1400,1000)
 
 #print("le tableau de longueur d'onde est:",l, "avec un pas qui separe deux longueurs: ",step)
 
-dev = lobs(x,l0)*0.01
-obs = lobs(x,l0)
+dev = lobs(z,l0)*0.01
+obs = lobs(z,l0)
 
 def pdf(longueur, centre, deviation):
     y = stats.norm.pdf(longueur,centre,deviation)
