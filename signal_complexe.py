@@ -25,10 +25,10 @@ pulsation = puls_init*temps2
 print("La fréquence d'échantillonage en Hz est:", pas)  #en Hz
 
 def sinuso(tps, amplitude, pulsation):
-    sinu = amplitude*np.sin(pulsation*tps[tps<1])
+    sinu = amplitude*np.sin(pulsation*tps) # J'ai changé ici pour le mettre plus général, ça pose des problèmes plus tard.
     return sinu
     
-signal = sinuso(tps, amplitude, pulsation)
+signal = sinuso(temps2, amplitude, pulsation)
     
 #plt.plot(signal)
 #plt.show()
@@ -67,8 +67,8 @@ dens = np.insert(dens, 0,  0)
 dens = np.concatenate((dens, np.flip(dens)))
 
 
-#plt.plot(frequence, dens)
-#plt.show()
+plt.plot(frequence, dens)
+plt.show()
 
 """" Modélisation d'un autre bruit :"""
 
