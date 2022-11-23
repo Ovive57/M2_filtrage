@@ -8,12 +8,22 @@ pas = tps[1]
 
 
 """ Signal Sinusoidal """
-
+ 
 def sinusoidal(temps, amplitude_init, pulsation_init):
-    
+    """
+    Génére un signal dont l'amplitude et la frequence augmentent en
+    fonction du temps de manière linéaire
+
+    Args:
+        temps (array): temps
+        amplitude_init (float): Amplitude initiale du signal
+        pulsation_init (float): Fréquence initiale du signal
+    Returs:
+        array : signal sinusoïdal
+    """
     amplitude = amplitude_init*temps
     pulsation = pulsation_init*temps
-    
+
     signal = amplitude*np.sin(pulsation*temps)
     return signal
 
@@ -24,9 +34,9 @@ amp_init = 2
 puls_init = 30 # en rad/s
 
 signal = sinusoidal(temps1, amp_init, puls_init)
-    
+
 plt.plot(signal)
-plt.title('signal sinusoïdale')
+plt.title('signal sinusoïdale mesuré')
 plt.show()
 
 
@@ -47,9 +57,19 @@ plt.show()
 """ Densité spectrale de puissance d'un bruit coloré """
 
 def psd(frequence, gamma):
+    """
+    Calcule la densité spectrale de puissance d'un bruit coloré
+
+    Args:
+        frequence (array): frange frequences positives à partir desquelles générer un bruit coloré
+        gamma (float): indice loi de puissance
+
+    Returns:
+        array : loi de puissance
+    """
     p = ((frequence[frequence>0])/10)**(gamma) + 1
     return p
-    
+
 gamma = -1.55
 dens1 = psd(frequence1, gamma)
 plt.plot(dens1)
@@ -57,10 +77,20 @@ plt.title("PSD avec $\gamma$ = -1.55 pour 1s")
 plt.show()
 
 def miroir(densite):
+    """
+    Génére la partie miroir d'une fonction et la rajoute à cette fonction.
+    Ajoute aussi le 0.
+
+    Args:
+        densite (array): fontion à laquelle on veut ajouter sa partie miroir.
+
+    Returns:
+        array : fonction avec partie miroir et 0
+    """
     densite = np.insert(densite, 0,  0)
     densite = np.concatenate((densite, np.flip(densite)))
     return densite
-    
+
 dens1 = psd(frequence1, gamma)
 dens1 = miroir(dens1)
 plt.plot(frequence1, dens1)
@@ -85,18 +115,38 @@ plt.show()
 """ Espace de Fourier pour trouver le bruit coloré """
 
 def bruit(densite):
+    """
+    Crée du bruit coloré à partir de sa densité spectrale de puissance.
+
+    Args:
+        densite (array): densité spectrale de puissance du bruit coloré dans l'espace de Fourier.
+
+    Returns:
+        array : le bruit coloré dans l'espace réel
+    """
     bruit_blanc = np.random.normal(0,1,1000)
     fourier_blanc = np.fft.fft(bruit_blanc)
-    
+
     fourier_color = fourier_blanc*np.sqrt(densite)
     bruit_color = np.real(np.fft.ifft(fourier_color))
-    
+
     return bruit_color
 
 """ Introduction aleatoire de la signal dans le bruit coloré """
 pos = np.random.randint(1000-100)
 
 def signalsurbruit(densite, signal, position):
+    """
+    Introduit un signal dans du bruit coloré
+
+    Args:
+        densite (array): densité spectrale de puissance du bruit coloré
+        signal (array): signal
+        position (int): position où mettre la signal dans le bruit
+
+    Returns:
+        array: data : signal + bruit
+    """
     bruit_color = bruit(densite)
     bruit_color[position:position+np.size(signal)] += signal
     
@@ -131,6 +181,16 @@ plt.show()
 """ Modélisation bruit pour le filtre """
 
 def covariance(densite, temps):
+    """
+    Calcule l'inverse de la matrice de covariance de 1000 réalisations du bruit en 1 s
+
+    Args:
+        densite (array): densité spectrale de puissance du bruit coloré
+        temps (array): plage de temps
+
+    Returns:
+        array : Matrice de covariance (Cn) et son inverse (cov)
+    """
     Cn = np.zeros((100,100))
     for i in range(1000):
         bruit_color = bruit(densite)
@@ -138,10 +198,10 @@ def covariance(densite, temps):
     Cn /= np.size(temps)
     cov = np.linalg.inv(Cn)
     return cov, Cn
-    
-cov, Cn = covariance(dens, temps1)
 
-# Vérification des propietés de la matrice covariance du bruit : 
+cov, Cn = covariance(dens, temps)
+
+# Vérification des propietés de la matrice covariance du bruit :
 
 if (Cn.all() == np.transpose(Cn).all()):
     print("La matrice de covariance est égale à la matrice de covariance transposée")
@@ -157,17 +217,30 @@ if prod.all() == I.all():
 """ FILTRE """
 filtre = np.dot(cov, signal_model)
 
-def cross(ymodel,ysig):
-        sizemod = np.size(ymodel)
-        sizesig = np.size(ysig)
-        
-        prod = []
-    
-        for i in range(sizesig-sizemod):
-            p = np.dot(ymodel,ysig[i:(i+sizemod)])
-            prod.append(p)
-        return prod
-        
+
+""" Application filtre """
+
+def cross(filtr,data):
+    """
+    Fait le produit scalaire morceau par morceau du temps
+    entre le filtre et le signal mesuré (signal + bruit)
+
+    Args:
+        filtr (array): filtre
+        data (array): signal + bruit
+
+    Returns:
+        array : signal filtré
+    """
+    sizemod = np.size(filtr)
+    sizesig = np.size(data)
+
+    prod = []
+    for i in range(sizesig-sizemod):
+        p = np.dot(filtr,data[i:(i+sizemod)])
+        prod.append(p)
+    return prod
+
 """ Corrélations croisés entre modèle et données (signal + bruit)"""
 
 prodat = cross(filtre, signal_bruit)
@@ -178,7 +251,17 @@ plt.show()
 """ 1000 réalisations de bruit filtrés """
 
 def bruitfiltre(densite,filtre):
-    #plt.figure()
+    """
+    Filtre 1000 réalisations de bruit
+
+    Args:
+        densite (array): densité spectrale de puissance
+        filtre (array): filtre
+
+    Returns:
+        array : (bruit_filtre) bruit filtré en moyenne
+        float : (devbr) écart type bruit filtré (1000 réalisations)
+    """
     bruit_filtre = np.zeros(900)
     devbr = 0
     for i in range(1000):
@@ -192,6 +275,16 @@ def bruitfiltre(densite,filtre):
     return bruit_filtre, devbr
 
 def bruitfiltreplot(densite,filtre):
+    """
+    Plot les 1000 réalisations de bruit filtré
+
+    Args:
+        densite (array): densité spectrale de puissance
+        filtre (array): filtre
+
+    Returns:
+        array : bruit filtré en moyenne
+    """
     plt.figure()
     bruit_filtre = np.zeros(900)
     for i in range(1000):
@@ -201,7 +294,7 @@ def bruitfiltreplot(densite,filtre):
         plt.plot(prodbruit)
     plt.show()
     return bruit_filtre
-    
+
 
 bruit_filtre, devbr = bruitfiltre(dens,filtre)
 plot_bruit_filtre = bruitfiltreplot(dens,filtre)
@@ -216,7 +309,15 @@ plt.show()
 """ Détection si SNR > 3 """
 
 def position_SNR_max(SNR):
+    """
+    Cherche la position de la signal avec une sensibilité de SNR > 3
+
+    Args:
+        SNR (array): Rapport signal sur bruit
     
+    Returns:
+        int : position du maximum du SNR s'il est > 3
+    """
     if np.max(SNR)<3:
         print("Pas de signal détecté")
         return None
