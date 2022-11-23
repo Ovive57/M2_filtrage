@@ -42,7 +42,7 @@ def miroir(densite):
     densite = np.concatenate((densite, np.flip(densite)))
     return densite
 
-
+# Fonction ressortant un bruit color (1000 valeurs)
 def bruit(densite):
     bruit_blanc = np.random.normal(0,1,1000)
     fourier_blanc = np.fft.fft(bruit_blanc)
@@ -58,13 +58,14 @@ def signalsurbruit(densite, signal, position):
     bruit_color[position:position+np.size(signal)] += signal
     return bruit_color
 
+# Fonction retournant la matrice de covariance (Cn) et la matrice inverse cov
 def covariance(densite, temps):
     Cn = np.zeros((100,100))
     n = 1000
     for i in range(n):
         bruit_color = bruit(densite)
         Cn += np.dot(np.transpose(bruit_color[None, 0:100]), bruit_color[None, 0:100])
-    Cn /= np.size(n)
+    Cn /= n
     cov = np.linalg.inv(Cn)
     return cov, Cn
 
@@ -87,14 +88,22 @@ def bruitfiltre(densite,filtre):
         bruit_color = bruit(densite)
         prodbruit = cross(filtre, bruit_color)
         bruit_filtre += prodbruit
-        dev = np.std(prodbruit)
-        devbr+= dev
     bruit_filtre = bruit_filtre/n
-    devbr = devbr/n
+    devbr =  np.std(bruit_filtre)
     return bruit_filtre, devbr
 
-
-
+    
+def bruitfiltre_correlate(densite,filtre):
+    bruit_filtre = np.zeros(901)
+    devbr = 0
+    n = 1000
+    for i in range(n):
+        bruit_color = bruit(densite)
+        prodbruit = correlate(bruit_color, filtre, mode='valid')
+        bruit_filtre += prodbruit
+    bruit_filtre = bruit_filtre/n
+    devbr = np.std(bruit_filtre)
+    return bruit_filtre, devbr
 
 
 
@@ -186,51 +195,60 @@ plt.show()
 
 
 
+
+
+
 """ Deuxième cas : le signal complexe """
 
+print("Cas complexe")
 
 
-### Données initiales:
 
+### Données initiales :
+
+# Plage temporelle de 1000 valeurs, de 0 à 10s
 tps = np.linspace(0, 10, 1000, retstep = True)
-
 temps = tps[0]
 pas = tps[1]
+print("Le pas:", pas)
 
+# Plage temporelle de 100 valeurs, de 0 à 1s
 temps1 = temps[0:100]
 
+# Position aléatoire entre 0 et 900
 pos = np.random.randint(1000-100)
+
 
 
 
 ### Création du signal et bruit :
 
 # Signal (de 1s)
-amp_init = 2
+amp_init = 1
 puls_init = 30 # en rad/s
 
 signal = sinusoidal(temps1, amp_init, puls_init)
 
-# Bruit (de 10s)
+# Bruit coloré (de 10s)
 gamma = -1.55
 frequence = np.fft.fftfreq(np.size(temps), pas)
-dens = psd(frequence, gamma)
-dens = miroir(dens)
-print("taille de dens:", np.size(dens))
+bruit_color = psd(frequence, gamma)
+bruit_color = miroir(bruit_color)
 
-# Bruit + signal (data)
-signal_bruit = signalsurbruit(dens, signal, pos)
 
-# Model signal
+# Bruit + signal (data, de 10s, 1000 valeurs)
+signal_bruit = signalsurbruit(bruit_color, signal, pos)
+
+
+# Signal "modèle" de 100 valeurs
+
 amp_init_model = 1
 signal_model = sinusoidal(temps1, amp_init_model, puls_init)
-
 # Inverse covariance
-cov, Cn = covariance(dens, temps)
+cov, Cn = covariance(bruit_color, temps)
 
-# Filtre
+# Filtre (100 valeurs)
 filtre = np.dot(cov, signal_model)
-print("taille de filtre:", np.size(filtre))
 
 
 ### Traitement du signal avec notre code:
@@ -241,13 +259,13 @@ start = time.time()
 prodat = cross(filtre, signal_bruit)
 
 #Bruit
-bruit_filtre, devbr = bruitfiltre(dens,filtre)
+bruit_filtre, devbr = bruitfiltre(bruit_color,filtre)
 
 SNR_3 = prodat/devbr
 
 end = time.time()
 t = end - start
-print("Temps mis par notre code pour le signal complexe:",t)
+print("\nTemps mis par notre code pour le signal complexe:",t)
 
 
 
@@ -261,20 +279,26 @@ prodat_2 = correlate(signal_bruit, filtre, mode='valid')
     
 # Corrélations croisées modèle/bruit
 
-prodbruit_2 = correlate(dens, filtre, mode='valid')
-    
-devbr_2 = np.std(prodbruit_2)
+prod_bruit2, devbr_2 = bruitfiltre_correlate(bruit_color,filtre)
+
+
+# SNR 
+
 SNR_4 = prodat_2/devbr_2
+
 
 end_2 = time.time()
 t_2 = end_2 - start_2
 
-print("Temps mis par la fonction correlate pour le signal comlpexe:", t_2)
+print("Temps mis par la fonction correlate pour le signal complexe:", t_2)
 
 
 
 
 ### Comparaison des deux méthodes:
+
+print("\nPour notre code, le signal est à la position temporelle:",np.argmax(np.abs(SNR_3)), "\
+        \nPour correlate :", np.argmax(np.abs(SNR_4)))
 
 fig, (ax1, ax2) = plt.subplots(2, 1)
 fig.suptitle('Signal sur bruit - Cas complexe')
