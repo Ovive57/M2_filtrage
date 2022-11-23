@@ -139,7 +139,7 @@ def covariance(densite, temps):
     cov = np.linalg.inv(Cn)
     return cov, Cn
     
-cov, Cn = covariance(dens, temps)
+cov, Cn = covariance(dens, temps1)
 
 # Vérification des propietés de la matrice covariance du bruit : 
 
@@ -230,6 +230,9 @@ position = position_SNR_max(SNR)
 print("la position trouvé avec le filtre est : ", position)
 print("la position aléatoire où on avait mis la signal dans le bruit est : ", pos)
 
+# Pour voir la comparaison des gamma aller voir le Jupyter Notebook associé au signal complexe.
+
+# Des fois la position diffère d'un point, c'est parce que notre filtre est un peu plus petit que notre signal, mais la plupart des fois c'est juste
 
 
 
