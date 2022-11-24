@@ -3,7 +3,7 @@ from scipy import stats as stats
 import matplotlib.pyplot as plt
 from scipy.signal import correlate
 import time
-#from codecarbon import EmissionsTracker
+from codecarbon import EmissionsTracker
 #tracker = EmissionsTracker()
 #tracker.start()
 
@@ -136,7 +136,7 @@ def covariance(densite, temps):
     for i in range(1000):
         bruit_color = bruit(densite)
         Cn += np.dot(np.transpose(bruit_color[None, 0:100]), bruit_color[None, 0:100])
-    Cn /= np.size(temps)
+    Cn /= 1000
     cov = np.linalg.inv(Cn)
     return cov, Cn
 
@@ -183,8 +183,10 @@ def bruitfiltre_correlate(densite,filtre):
         bruit_color = bruit(densite)
         prodbruit = correlate(bruit_color, filtre, mode='valid')
         bruit_filtre += prodbruit
+        dev = np.std(prodbruit)
+        devbr+=dev
     bruit_filtre = bruit_filtre/n
-    devbr = np.std(bruit_filtre)
+    devbr = devbr/1000
     return bruit_filtre, devbr
 
 
@@ -391,8 +393,6 @@ ax2.plot(SNR_3, 'b')
 ax2.set_ylabel('Notre code')
 
 plt.show()
-
-
 
 
 #tracker.stop()
